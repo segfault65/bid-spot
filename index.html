@@ -1,190 +1,418 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cluster: 9 machines with 8 GPUs each</title>
-  <style>
-    :root {
-      --border: #374151;
-      --bg: #f7f7fb;
-      --card: #ffffff;
-      --gpu: #e5e7eb;
-      --gpu-alt: #d1d5db;
-    }
-
-    * { box-sizing: border-box; }
-
-    html, body {
-      height: 100%;
-    }
-
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
-      background: var(--bg);
-      color: #111;
-    }
-
-    header {
-      text-align: center;
-      padding: 20px 12px 12px;
-    }
-
-    header h1 {
-      margin: 0;
-      font-size: 1.1rem;
-      font-weight: 700;
-    }
-
-    /* Cluster grid: 3 machines per row */
-    .cluster {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 18px;
-      padding: 0 16px 40px;
-      max-width: 1100px;
-      margin: 0 auto;
-    }
-
-    /* Individual machine card */
-    .machine {
-      background: var(--card);
-      border: 2px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      min-height: 150px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-    }
-
-    .machine-header {
-      background: #eef2ff;
-      color: #1e3a8a;
-      font-weight: 700;
-      padding: 6px 10px;
-      border-radius: 6px;
-      text-align: center;
-      font-size: 0.85rem;
-    }
-
-    /* GPUs inside a machine: 4 per row, 8 GPUs total (2 rows) */
-    .gpus {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
-      padding: 0 6px 0 6px;
-    }
-
-    .gpu {
-      height: 22px;
-      border-radius: 6px;
-      background: #dbe5f3;
-      border: 1px solid #cbd5e1;
-    }
-
-    /* Simple color variation for visual interest */
-    .gpu:nth-child(odd)  { background: #e3eaf4; }
-    .gpu:nth-child(even) { background: #d2dbe6; }
-
-    /* Responsive: allow fewer machines per row on smaller screens for readability */
-    @media (max-width: 1000px) {
-      .cluster { grid-template-columns: repeat(2, 1fr); }
-    }
-
-    @media (max-width: 700px) {
-      .cluster { grid-template-columns: 1fr; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPU Cluster Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background-color: #0b1120;
+            color: #d1d5db;
+            overflow: hidden;
+        }
+        canvas {
+            background-color: transparent;
+        }
+        .glow-text {
+            text-shadow: 0 0 5px #60a5fa, 0 0 10px #60a5fa, 0 0 15px rgba(96, 165, 250, 0.5);
+        }
+        .data-glow {
+            box-shadow: 0 0 5px #a78bfa, 0 0 10px #a78bfa;
+        }
+        .progress-bar-container {
+            width: 100%;
+            height: 12px;
+            background-color: #1f2937;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            transition: width 0.5s ease-in-out, background-color 0.5s ease-in-out;
+            border-radius: 9999px;
+        }
+        .sparkle {
+            animation: sparkle-animation 2s infinite linear;
+        }
+        @keyframes sparkle-animation {
+            0% { opacity: 0; transform: scale(0.5); }
+            50% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.5); }
+        }
+    </style>
 </head>
 <body>
-  <header>
-    <h1>Cluster: 9 machines (3 per row), each with 8 GPUs (4 per row)</h1>
-  </header>
 
-  <main class="cluster" aria-label="Cluster of 9 machines">
-    <!-- Machine 1 -->
-    <section class="machine" aria-label="Machine 1">
-      <div class="machine-header">Machine 1</div>
-      <div class="gpus" aria-label="GPUs on Machine 1">
-        <div class="gpu"></div><div class="gpu"></div><div class="gpu"></div><div class="gpu"></div>
-        <div class="gpu"></div><div class="gpu"></div><div class="gpu"></div><div class="gpu"></div>
-      </div>
-    </section>
+    <div class="flex flex-col md:flex-row h-screen">
+        <!-- Main GPU Visualization Section -->
+        <div class="flex-1 w-full flex flex-col items-center justify-center p-4">
+            <!-- Controller Box -->
+            <div class="bg-gray-800 rounded-lg shadow-xl p-4 mb-6 text-center">
+                <h2 class="text-3xl font-bold text-gray-200 glow-text">Cluster Scheduler</h2>
+                <div class="mt-4">
+                    <h3 class="text-xl font-semibold text-gray-400 mb-2">Incoming Job Queue</h3>
+                    <div id="incomingJobsQueue" class="flex justify-center items-center flex-wrap gap-2">
+                        <!-- Jobs will be rendered here -->
+                    </div>
+                </div>
+            </div>
+            <!-- End Controller Box -->
+            
+            <div class="w-full max-w-4xl flex flex-col sm:flex-row justify-center items-center gap-4">
+                <!-- Job Summary Box -->
+                <div class="bg-gray-800 rounded-lg shadow-xl p-4 mt-6 text-center w-full sm:w-1/2">
+                    <h3 class="text-2xl font-bold text-gray-200 mb-2 glow-text">Current Job Summary</h3>
+                    <div id="jobSummaryBox" class="flex justify-center items-center flex-wrap gap-4">
+                        <!-- Summary will be rendered here -->
+                    </div>
+                </div>
+                <!-- End Job Summary Box -->
+    
+                <!-- Free GPUs Box -->
+                <div class="bg-gray-800 rounded-lg shadow-xl p-4 mt-6 text-center w-full sm:w-1/2">
+                    <h3 class="text-2xl font-bold text-gray-200 mb-2 glow-text">Free GPUs</h3>
+                    <div id="freeGpusSummary" class="text-5xl font-bold text-green-400">0</div>
+                </div>
+                <!-- End Free GPUs Box -->
+            </div>
 
-    <!-- Machine 2 -->
-    <section class="machine" aria-label="Machine 2">
-      <div class="machine-header">Machine 2</div>
-      <div class="gpus" aria-label="GPUs on Machine 2">
-        <div class="gpu"></div><div class="gpu"></div><div class="gpu"></div><div class="gpu"></div>
-        <div class="gpu"></div><div class="gpu"></div><div class="gpu"></div><div class="gpu"></div>
-      </div>
-    </section>
+            <div class="w-full max-w-4xl h-full flex flex-col items-center justify-center relative">
+                <canvas id="gpuCanvas" class="rounded-3xl border-2 border-[#1f2937]"></canvas>
+            </div>
+        </div>
 
-    <!-- Machine 3 -->
-    <section class="machine" aria-label="Machine 3">
-      <div class="machine-header">Machine 3</div>
-      <div class="gpus" aria-label="GPUs on Machine 3">
-        <div class="gpu"></div><div class="gpu"></div><div class="gpu"></div><div class="gpu"></div>
-        <div class="gpu"></div><div class="gpu"></div><div class="gpu"></div><div class="gpu"></div>
-      </div>
-    </section>
+        <!-- Metrics and Info Section -->
+        <div class="md:w-0 overflow-hidden">
+            <!-- Content for this section is now hidden -->
+            <div class="bg-[#1f2937] rounded-3xl p-6 border border-[#374151] backdrop-blur-sm bg-opacity-70">
+                <h2 class="text-xl font-bold mb-4 text-center">System Metrics</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <div class="text-sm font-light mb-1 text-gray-400">Total GPUs</div>
+                        <div id="totalGpus" class="text-3xl font-bold text-indigo-400">72</div>
+                    </div>
+                    <div>
+                        <div class="text-sm font-light mb-1 text-gray-400">Active Jobs</div>
+                        <div id="activeJobs" class="text-3xl font-bold text-green-400">3</div>
+                    </div>
+                    <div>
+                        <div class="text-sm font-light mb-1 text-gray-400">Cluster Throughput (TFLOPs)</div>
+                        <div id="throughput" class="text-3xl font-bold text-yellow-400">1.2 Peta</div>
+                    </div>
+                    <div>
+                        <div class="text-sm font-light mb-1 text-gray-400">Total VRAM (GB)</div>
+                        <div id="vram" class="text-3xl font-bold text-purple-400">576</div>
+                    </div>
+                </div>
+            </div>
 
-    <!-- Machine 4 -->
-    <section class="machine" aria-label="Machine 4">
-      <div class="machine-header">Machine 4</div>
-      <div class="gpus" aria-label="GPUs on Machine 4">
-        <div class="gpu"></div><div class="gpu"></div><div class="gpu"></div><div class="gpu"></div>
-        <div class="gpu"></div><div class="gpu"></div><div class="gpu"></div><div class="gpu"></div>
-      </div>
-    </section>
+            <!-- Job Queue Card -->
+            <div class="bg-[#1f2937] rounded-3xl p-6 border border-[#374151] backdrop-blur-sm bg-opacity-70">
+                <h2 class="text-xl font-bold mb-4 text-center">Current Jobs</h2>
+                <div id="jobList" class="space-y-4">
+                    <!-- Dynamic jobs will be added here -->
+                </div>
+            </div>
 
-    <!-- Machine 5 -->
-    <section class="machine" aria-label="Machine 5">
-      <div class="machine-header">Machine 5</div>
-      <div class="gpus" aria-label="GPUs on Machine 5">
-        <div class="gpu"></div><div class="gpu"></div><div class="gpu"></div><div class="gpu"></div>
-        <div class="gpu"></div><div class="gpu"></div><div class="gpu"></div><div class="gpu"></div>
-      </div>
-    </section>
+            <!-- Performance Graphs Card (simulated with CSS/JS) -->
+            <div class="bg-[#1f2937] rounded-3xl p-6 border border-[#374151] backdrop-blur-sm bg-opacity-70">
+                <h2 class="text-xl font-bold mb-4 text-center">Performance Overview</h2>
+                <div class="mb-6">
+                    <div class="text-sm font-light mb-2 text-gray-400">GPU Utilization (%)</div>
+                    <div id="utilizationChart" class="flex items-end gap-2 h-20">
+                        <!-- Bars will be added here -->
+                    </div>
+                </div>
+                <div>
+                    <div class="text-sm font-light mb-2 text-gray-400">Network Bandwidth (GB/s)</div>
+                    <div id="bandwidthChart" class="flex items-end gap-2 h-20">
+                        <!-- Bars will be added here -->
+                    </div>
+                </div>
+            </div>
 
-    <!-- Machine 6 -->
-    <section class="machine" aria-label="Machine 6">
-      <div class="machine-header">Machine 6</div>
-      <div class="gpus" aria-label="GPUs on Machine 6">
-        <div class="gpu"></div><div class="gpu"></div><div class="gpu"></div><div class="gpu"></div>
-        <div class="gpu"></div><div class="gpu"></div><div class="gpu"></div><div class="gpu"></div>
-      </div>
-    </section>
+        </div>
+    </div>
 
-    <!-- Machine 7 -->
-    <section class="machine" aria-label="Machine 7">
-      <div class="machine-header">Machine 7</div>
-      <div class="gpus" aria-label="GPUs on Machine 7">
-        <div class="gpu"></div><div class="gpu"></div><div class="gpu"></div><div class="gpu"></div>
-        <div class="gpu"></div><div class="gpu"></div><div class="gpu"></div><div class="gpu"></div>
-      </div>
-    </section>
+    <script>
+        // Set up the canvas and context
+        const canvas = document.getElementById('gpuCanvas');
+        const ctx = canvas.getContext('2d');
 
-    <!-- Machine 8 -->
-    <section class="machine" aria-label="Machine 8">
-      <div class="machine-header">Machine 8</div>
-      <div class="gpus" aria-label="GPUs on Machine 8">
-        <div class="gpu"></div><div class="gpu"></div><div class="gpu"></div><div class="gpu"></div>
-        <div class="gpu"></div><div class="gpu"></div><div class="gpu"></div><div class="gpu"></div>
-      </div>
-    </section>
+        // Configuration for the cluster
+        const numMachines = 9;
+        const gpusPerMachine = 8;
+        const gpuRows = 2;
+        const gpuCols = 4;
+        const totalGpus = numMachines * gpusPerMachine;
+        
+        // Data structures for visualization
+        let machines = [];
+        let particles = [];
+        const jobColors = ['#a78bfa', '#fcd34d', '#60a5fa', '#f87171', '#34d399'];
+        const jobNames = ['AI Training', 'Data Analysis', '3D Rendering', 'Neural Net', 'Cryptography'];
 
-    <!-- Machine 9 -->
-    <section class="machine" aria-label="Machine 9">
-      <div class="machine-header">Machine 9</div>
-      <div class="gpus" aria-label="GPUs on Machine 9">
-        <div class="gpu"></div><div class="gpu"></div><div class="gpu"></div><div class="gpu"></div>
-        <div class="gpu"></div><div class="gpu"></div><div class="gpu"></div><div class="gpu"></div>
-      </div>
-    </section>
-  </main>
+        // DOM elements
+        const activeJobsEl = document.getElementById('activeJobs');
+        const throughputEl = document.getElementById('throughput');
+        const jobListEl = document.getElementById('jobList');
+        const utilizationChartEl = document.getElementById('utilizationChart');
+        const bandwidthChartEl = document.getElementById('bandwidthChart');
+        const incomingJobsQueueEl = document.getElementById('incomingJobsQueue');
+        const jobSummaryBoxEl = document.getElementById('jobSummaryBox');
+        const freeGpusSummaryEl = document.getElementById('freeGpusSummary');
+
+        // Animation state
+        let animationId = null;
+        let intervalId = null;
+        let gpuUtilization = Array(totalGpus).fill(0);
+        let activeJobCount = 0;
+
+        // Job types based on the user's request
+        const jobTypes = {
+            'AI Inference': { count: 10, gpusPerJob: 1, color: '#f87171' },
+            'Training Batch': { count: 6, gpusPerJob: 4, color: '#34d399' },
+            'Massive Simulation': { count: 3, gpusPerJob: 8, color: '#a78bfa' }
+        };
+
+        // Resize function for canvas
+        const resizeCanvas = () => {
+            canvas.width = canvas.parentElement.offsetWidth;
+            canvas.height = canvas.parentElement.offsetHeight;
+            updateGpuPositions();
+            drawDashboard();
+        };
+
+        // Function to position GPUs in a 2x4 grid within each machine box
+        const updateGpuPositions = () => {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            // Machine box dimensions
+            const gpuSize = 15;
+            const horizontalSpacing = 20;
+            const verticalSpacing = 20;
+            const gridWidth = (gpuCols * (gpuSize * 2)) + ((gpuCols - 1) * horizontalSpacing);
+            const gridHeight = (gpuRows * (gpuSize * 2)) + ((gpuRows - 1) * verticalSpacing);
+            const machineWidth = gridWidth + 60; // Add padding
+            const machineHeight = gridHeight + 60; // Add padding
+            const machineGridRows = 3;
+            const machineGridCols = 3;
+            const machineHorizontalSpacing = 300;
+            const machineVerticalSpacing = 180;
+            const startX = centerX - (machineGridCols - 1) * machineHorizontalSpacing / 2;
+            const startY = centerY - (machineGridRows - 1) * machineVerticalSpacing / 2;
+
+            machines = [];
+            for (let i = 0; i < numMachines; i++) {
+                const machineRow = Math.floor(i / machineGridCols);
+                const machineCol = i % machineGridCols;
+
+                const machineX = startX + machineCol * machineHorizontalSpacing;
+                const machineY = startY + machineRow * machineVerticalSpacing;
+
+                const machineGpus = [];
+
+                for (let j = 0; j < gpusPerMachine; j++) {
+                    const row = Math.floor(j / gpuCols);
+                    const col = j % gpuCols;
+
+                    // Calculate position of each GPU, centered within the machine box
+                    const gpuX = (machineX - gridWidth / 2) + (col * (gpuSize * 2 + horizontalSpacing)) + gpuSize;
+                    const gpuY = (machineY - gridHeight / 2) + (row * (gpuSize * 2 + verticalSpacing)) + gpuSize;
+                    
+                    machineGpus.push({
+                        x: gpuX,
+                        y: gpuY,
+                        size: gpuSize,
+                        color: '#60a5fa',
+                        globalIndex: i * gpusPerMachine + j
+                    });
+                }
+
+                machines.push({
+                    x: machineX,
+                    y: machineY,
+                    width: machineWidth,
+                    height: machineHeight,
+                    gpus: machineGpus
+                });
+            }
+        };
+
+        // Function to draw the dashboard
+        const drawDashboard = () => {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.shadowBlur = 0;
+
+            // Draw each machine stack
+            machines.forEach((machine, machineIndex) => {
+                // Draw machine box with rounded corners and border
+                const boxX = machine.x - machine.width / 2;
+                const boxY = machine.y - machine.height / 2;
+                const borderRadius = 15;
+                
+                ctx.beginPath();
+                ctx.roundRect(boxX, boxY, machine.width, machine.height, borderRadius);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.strokeStyle = '#3b82f6';
+                ctx.lineWidth = 2;
+                ctx.fill();
+                ctx.stroke();
+
+                // Draw machine label
+                ctx.fillStyle = '#d1d5db';
+                ctx.font = '14px Orbitron';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`Machine ${machineIndex + 1}`, machine.x, boxY + 20);
+
+                // Draw each GPU in the stack
+                machine.gpus.forEach((gpu, gpuIndex) => {
+                    // Draw GPUs as squares
+                    ctx.beginPath();
+                    ctx.fillStyle = gpu.color;
+                    ctx.fillRect(gpu.x - gpu.size, gpu.y - gpu.size, gpu.size * 2, gpu.size * 2);
+                    ctx.shadowBlur = 0; // Removed the glow by setting blur to 0
+                    ctx.fill();
+                });
+            });
+        };
+
+        // Function to update metrics and charts once
+        const updateMetrics = () => {
+            let gpuAssignments = Array(totalGpus).fill('#60a5fa'); // Fill with idle color
+            
+            // Assign Massive Simulation jobs (3 jobs, 8 GPUs each) to machines 1, 2, 3
+            const massiveSimColor = jobTypes['Massive Simulation'].color;
+            for (let i = 0; i < jobTypes['Massive Simulation'].count; i++) {
+                const startIndex = i * gpusPerMachine;
+                for (let j = 0; j < gpusPerMachine; j++) {
+                    gpuAssignments[startIndex + j] = massiveSimColor;
+                }
+            }
+            
+            // Assign Training Batch jobs (6 jobs, 4 GPUs each)
+            const trainingBatchColor = jobTypes['Training Batch'].color;
+            
+            // Place 2 jobs on Machine 4 and 2 on Machine 5
+            for(let i = 0; i < 2; i++) {
+                const startIndex = (3 + i) * gpusPerMachine;
+                for(let j = 0; j < 2; j++) { // 2 jobs per machine
+                    for(let k = 0; k < 4; k++) {
+                        gpuAssignments[startIndex + (j * 4) + k] = trainingBatchColor;
+                    }
+                }
+            }
+
+            // Place one job on Machine 6 and one on Machine 9
+            // Machine 6
+            let startIndexM6 = 5 * gpusPerMachine;
+            for(let k = 0; k < 4; k++) {
+                gpuAssignments[startIndexM6 + k] = trainingBatchColor;
+            }
+            // Machine 9
+            let startIndexM9 = 8 * gpusPerMachine;
+            for(let k = 0; k < 4; k++) {
+                gpuAssignments[startIndexM9 + k] = trainingBatchColor;
+            }
+
+            // Assign AI Inference jobs (10 jobs, 1 GPU each)
+            const aiInferenceColor = jobTypes['AI Inference'].color;
+            const inferenceJobsToPlace = jobTypes['AI Inference'].count;
+            
+            // Distribute red jobs on machines 7, 8, and 9
+            const inferenceMachineIndices = [6, 7, 8]; // Machines 7, 8, and 9
+            const distribution = {
+                '6': 4, // Machine 7
+                '7': 5, // Machine 8 (Reduced from 7)
+                '8': 1  // Machine 9
+            };
+            
+            // Recalculate distribution based on total jobs (10 jobs)
+            const totalRedJobs = Object.values(distribution).reduce((sum, count) => sum + count, 0);
+            
+            let redJobsPlaced = 0;
+            // Place red jobs on machines 7, 8, and 9
+            for (const machineIndex of inferenceMachineIndices) {
+                const startIndex = machineIndex * gpusPerMachine;
+                const numJobs = distribution[machineIndex.toString()];
+
+                for (let i = 0; i < numJobs; i++) {
+                    if (redJobsPlaced < inferenceJobsToPlace) {
+                        gpuAssignments[startIndex + i] = aiInferenceColor;
+                        redJobsPlaced++;
+                    }
+                }
+            }
+
+            // Update GPU colors and utilization
+            machines.forEach(machine => {
+                machine.gpus.forEach(gpu => {
+                    const assignedColor = gpuAssignments[gpu.globalIndex];
+                    gpu.color = assignedColor;
+                });
+            });
+
+            // Update DOM elements with static data
+            document.querySelector('#totalGpus').textContent = totalGpus;
+            
+            let totalUsedGpus = 0;
+            Object.keys(jobTypes).forEach(jobName => {
+                const job = jobTypes[jobName];
+                totalUsedGpus += job.count * job.gpusPerJob;
+            });
+            const freeGpus = totalGpus - totalUsedGpus;
+
+            freeGpusSummaryEl.textContent = freeGpus;
+            document.querySelector('#activeJobs').textContent = Object.values(jobTypes).reduce((sum, job) => sum + job.count, 0);
+            document.querySelector('#throughput').textContent = `1.2 Peta`;
+            document.querySelector('#vram').textContent = totalGpus * 8; // Assuming 8GB per GPU
+
+            // Update job summary box
+            const summaryHTML = Object.keys(jobTypes).map(jobName => {
+                const job = jobTypes[jobName];
+                return `
+                    <div class="flex items-center gap-2 p-2 rounded-lg bg-gray-700">
+                        <div class="w-4 h-4 rounded-full" style="background-color: ${job.color};"></div>
+                        <div class="text-sm">
+                            <span class="font-bold">${jobName}</span>
+                            <br>
+                            <span class="text-gray-400">${job.count} jobs | ${job.count * job.gpusPerJob} GPUs</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            jobSummaryBoxEl.innerHTML = summaryHTML;
+
+            // Generate a random incoming job queue
+            const numQueuedJobs = Math.floor(Math.random() * 5) + 3; // 3 to 7 jobs in the queue
+            const queuedJobsHTML = Array.from({ length: numQueuedJobs }).map(() => {
+                const jobName = jobNames[Math.floor(Math.random() * jobNames.length)];
+                const jobColor = jobColors[Math.floor(Math.random() * jobColors.length)];
+                return `
+                    <div class="w-4 h-4 rounded-sm" style="background-color: ${jobColor};" title="${jobName}"></div>
+                `;
+            }).join('');
+            incomingJobsQueueEl.innerHTML = queuedJobsHTML;
+            
+            drawDashboard();
+        };
+
+        // Initial setup and event listeners
+        window.addEventListener('resize', resizeCanvas);
+        
+        window.onload = () => {
+            resizeCanvas();
+            updateMetrics();
+        };
+    </script>
+
 </body>
 </html>
