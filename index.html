@@ -175,9 +175,9 @@
 
         // Job types based on the user's request
         const jobTypes = {
-            'AI Inference': { count: 12, gpusPerJob: 1, color: '#f87171' }, // Red-orange, updated from 10 to 12
-            'Training Batch': { count: 6, gpusPerJob: 4, color: '#34d399' }, // Green
-            'Massive Simulation': { count: 3, gpusPerJob: 8, color: '#a78bfa' } // Purple
+            'AI Inference': { count: 10, gpusPerJob: 1, color: '#f87171' },
+            'Training Batch': { count: 6, gpusPerJob: 4, color: '#34d399' },
+            'Massive Simulation': { count: 3, gpusPerJob: 8, color: '#a78bfa' }
         };
 
         // Resize function for canvas
@@ -289,7 +289,7 @@
         const updateMetrics = () => {
             let gpuAssignments = Array(totalGpus).fill('#60a5fa'); // Fill with idle color
             
-            // Assign Massive Simulation jobs (3 jobs, 8 GPUs each)
+            // Assign Massive Simulation jobs (3 jobs, 8 GPUs each) to machines 1, 2, 3
             const massiveSimColor = jobTypes['Massive Simulation'].color;
             for (let i = 0; i < jobTypes['Massive Simulation'].count; i++) {
                 const startIndex = i * gpusPerMachine;
@@ -300,38 +300,55 @@
             
             // Assign Training Batch jobs (6 jobs, 4 GPUs each)
             const trainingBatchColor = jobTypes['Training Batch'].color;
-            // Place 2 jobs on Machine 4, 2 on Machine 5, and 2 on Machine 6
-            for (let i = 0; i < 3; i++) {
-                const machineIndex = 3 + i;
-                const startIndex = machineIndex * gpusPerMachine;
-                for (let j = 0; j < 2; j++) { // Two jobs per machine
-                    for (let k = 0; k < 4; k++) {
-                         gpuAssignments[startIndex + (j * 4) + k] = trainingBatchColor;
+            
+            // Place 2 jobs on Machine 4 and 2 on Machine 5
+            for(let i = 0; i < 2; i++) {
+                const startIndex = (3 + i) * gpusPerMachine;
+                for(let j = 0; j < 2; j++) { // 2 jobs per machine
+                    for(let k = 0; k < 4; k++) {
+                        gpuAssignments[startIndex + (j * 4) + k] = trainingBatchColor;
                     }
                 }
             }
 
-            // Assign AI Inference jobs (12 jobs, 1 GPU each)
+            // Place one job on Machine 6 and one on Machine 9
+            // Machine 6
+            let startIndexM6 = 5 * gpusPerMachine;
+            for(let k = 0; k < 4; k++) {
+                gpuAssignments[startIndexM6 + k] = trainingBatchColor;
+            }
+            // Machine 9
+            let startIndexM9 = 8 * gpusPerMachine;
+            for(let k = 0; k < 4; k++) {
+                gpuAssignments[startIndexM9 + k] = trainingBatchColor;
+            }
+
+            // Assign AI Inference jobs (10 jobs, 1 GPU each)
             const aiInferenceColor = jobTypes['AI Inference'].color;
+            const inferenceJobsToPlace = jobTypes['AI Inference'].count;
             
-            // Start with 4 red jobs on each machine
-            let machine7Index = 6 * gpusPerMachine;
-            let machine8Index = 7 * gpusPerMachine;
-            let machine9Index = 8 * gpusPerMachine;
+            // Distribute red jobs on machines 7, 8, and 9
+            const inferenceMachineIndices = [6, 7]; // Machines 7 and 8
+            const distribution = {
+                '6': 4, // Machine 7
+                '7': 6, // Machine 8
+            };
+            
+            // Recalculate distribution based on total jobs (10 jobs)
+            const totalRedJobs = Object.values(distribution).reduce((sum, count) => sum + count, 0);
+            
+            let redJobsPlaced = 0;
+            // Place red jobs on machines 7, 8, and 9
+            for (const machineIndex of inferenceMachineIndices) {
+                const startIndex = machineIndex * gpusPerMachine;
+                const numJobs = distribution[machineIndex.toString()];
 
-            // Machine 7: 4 red jobs
-            for (let i = 0; i < 4; i++) {
-                gpuAssignments[machine7Index + i] = aiInferenceColor;
-            }
-
-            // Machine 8: 4 red jobs
-            for (let i = 0; i < 4; i++) {
-                gpuAssignments[machine8Index + i] = aiInferenceColor;
-            }
-
-            // Machine 9: 4 red jobs
-            for (let i = 0; i < 4; i++) {
-                gpuAssignments[machine9Index + i] = aiInferenceColor;
+                for (let i = 0; i < numJobs; i++) {
+                    if (redJobsPlaced < inferenceJobsToPlace) {
+                        gpuAssignments[startIndex + i] = aiInferenceColor;
+                        redJobsPlaced++;
+                    }
+                }
             }
 
             // Update GPU colors and utilization
