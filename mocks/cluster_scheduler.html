@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPU Cluster Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background-color: white;
+            color: #111827;
+            overflow: hidden;
+        }
+        canvas {
+            background-color: transparent;
+        }
+        .glow-text {
+            text-shadow: 0 0 5px #60a5fa, 0 0 10px #60a5fa, 0 0 15px rgba(96, 165, 250, 0.5);
+        }
+        .data-glow {
+            box-shadow: 0 0 5px #a78bfa, 0 0 10px #a78bfa;
+        }
+        .progress-bar-container {
+            width: 100%;
+            height: 12px;
+            background-color: #1f2937;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            transition: width 0.5s ease-in-out, background-color 0.5s ease-in-out;
+            border-radius: 9999px;
+        }
+        .sparkle {
+            animation: sparkle-animation 2s infinite linear;
+        }
+        @keyframes sparkle-animation {
+            0% { opacity: 0; transform: scale(0.5); }
+            50% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.5); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="flex flex-col h-screen p-4">
+        <!-- Controller Box -->
+        <div class="bg-[#111827] rounded-xl p-6 mb-8 text-center border-2 border-gray-700 mx-auto w-full max-w-lg">
+            <h2 class="text-xl font-bold text-gray-200 mb-2">GPU Cluster Controller</h2>
+            <button id="refreshButton" class="bg-gray-800 text-gray-200 px-6 py-2 rounded-full border-2 border-gray-600 hover:bg-gray-700 transition-colors duration-300 active:scale-95">
+                Refresh
+            </button>
+        </div>
+
+        <!-- Main GPU Visualization Section -->
+        <div class="flex-1 w-full flex flex-col items-center justify-center">
+            <h1 class="text-4xl sm:text-5xl font-bold mb-6 text-center text-gray-900">GPU Cluster Dashboard</h1>
+            <div class="w-full max-w-4xl h-full flex flex-col items-center justify-center relative">
+                <canvas id="gpuCanvas" class="rounded-3xl border-2 border-[#d1d5db]"></canvas>
+            </div>
+        </div>
+
+        <!-- Metrics and Info Section -->
+        <div class="md:w-0 overflow-hidden">
+            <!-- Content for this section is now hidden -->
+            <div class="bg-[#1f2937] rounded-3xl p-6 border border-[#374151] backdrop-blur-sm bg-opacity-70">
+                <h2 class="text-xl font-bold mb-4 text-center">System Metrics</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <div class="text-sm font-light mb-1 text-gray-400">Total GPUs</div>
+                        <div id="totalGpus" class="text-3xl font-bold text-indigo-400">72</div>
+                    </div>
+                    <div>
+                        <div class="text-sm font-light mb-1 text-gray-400">Active Jobs</div>
+                        <div id="activeJobs" class="text-3xl font-bold text-green-400">3</div>
+                    </div>
+                    <div>
+                        <div class="text-sm font-light mb-1 text-gray-400">Cluster Throughput (TFLOPs)</div>
+                        <div id="throughput" class="text-3xl font-bold text-yellow-400">1.2 Peta</div>
+                    </div>
+                    <div>
+                        <div class="text-sm font-light mb-1 text-gray-400">Total VRAM (GB)</div>
+                        <div id="vram" class="text-3xl font-bold text-purple-400">576</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Job Queue Card -->
+            <div class="bg-[#1f2937] rounded-3xl p-6 border border-[#374151] backdrop-blur-sm bg-opacity-70">
+                <h2 class="text-xl font-bold mb-4 text-center">Current Jobs</h2>
+                <div id="jobList" class="space-y-4">
+                    <!-- Dynamic jobs will be added here -->
+                </div>
+            </div>
+
+            <!-- Performance Graphs Card (simulated with CSS/JS) -->
+            <div class="bg-[#1f2937] rounded-3xl p-6 border border-[#374151] backdrop-blur-sm bg-opacity-70">
+                <h2 class="text-xl font-bold mb-4 text-center">Performance Overview</h2>
+                <div class="mb-6">
+                    <div class="text-sm font-light mb-2 text-gray-400">GPU Utilization (%)</div>
+                    <div id="utilizationChart" class="flex items-end gap-2 h-20">
+                        <!-- Bars will be added here -->
+                    </div>
+                </div>
+                <div>
+                    <div class="text-sm font-light mb-2 text-gray-400">Network Bandwidth (GB/s)</div>
+                    <div id="bandwidthChart" class="flex items-end gap-2 h-20">
+                        <!-- Bars will be added here -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Set up the canvas and context
+        const canvas = document.getElementById('gpuCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Configuration for the cluster
+        const numMachines = 9;
+        const gpusPerMachine = 8;
+        const gpuRows = 2;
+        const gpuCols = 4;
+        const totalGpus = numMachines * gpusPerMachine;
+        
+        // Data structures for visualization
+        let machines = [];
+        let particles = [];
+        const jobColors = ['#a78bfa', '#fcd34d', '#60a5fa', '#f87171', '#34d399'];
+        const jobNames = ['AI Training', 'Data Analysis', '3D Rendering', 'Neural Net', 'Cryptography'];
+
+        // DOM elements
+        const activeJobsEl = document.getElementById('activeJobs');
+        const throughputEl = document.getElementById('throughput');
+        const jobListEl = document.getElementById('jobList');
+        const utilizationChartEl = document.getElementById('utilizationChart');
+        const bandwidthChartEl = document.getElementById('bandwidthChart');
+        const refreshButton = document.getElementById('refreshButton');
+
+        // Animation state
+        let animationId = null;
+        let intervalId = null;
+        let gpuUtilization = Array(totalGpus).fill(0);
+        let activeJobCount = 0;
+
+        // Resize function for canvas
+        const resizeCanvas = () => {
+            canvas.width = canvas.parentElement.offsetWidth;
+            canvas.height = canvas.parentElement.offsetHeight;
+            updateGpuPositions();
+            drawDashboard();
+        };
+
+        // Function to position GPUs in a 2x4 grid within each machine box
+        const updateGpuPositions = () => {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            // Machine box dimensions
+            const gpuSize = 15;
+            const horizontalSpacing = 20;
+            const verticalSpacing = 20;
+            const gridWidth = (gpuCols * (gpuSize * 2)) + ((gpuCols - 1) * horizontalSpacing);
+            const gridHeight = (gpuRows * (gpuSize * 2)) + ((gpuRows - 1) * verticalSpacing);
+            const machineWidth = gridWidth + 60; // Add padding
+            const machineHeight = gridHeight + 60; // Add padding
+            
+            const machineGridRows = 3;
+            const machineGridCols = 3;
+            
+            // Dynamic spacing based on canvas size
+            const maxHorizontalSpacing = 300;
+            const maxVerticalSpacing = 180;
+            const minPadding = 40;
+            const machineHorizontalSpacing = Math.min(maxHorizontalSpacing, (canvas.width - machineGridCols * machineWidth - minPadding) / (machineGridCols - 1));
+            const machineVerticalSpacing = Math.min(maxVerticalSpacing, (canvas.height - machineGridRows * machineHeight - minPadding) / (machineGridRows - 1));
+
+            const startX = centerX - (machineGridCols * machineWidth + (machineGridCols - 1) * machineHorizontalSpacing) / 2 + machineWidth / 2;
+            const startY = centerY - (machineGridRows * machineHeight + (machineGridRows - 1) * machineVerticalSpacing) / 2 + machineHeight / 2;
+
+            machines = [];
+            for (let i = 0; i < numMachines; i++) {
+                const machineRow = Math.floor(i / machineGridCols);
+                const machineCol = i % machineGridCols;
+
+                const machineX = startX + machineCol * (machineWidth + machineHorizontalSpacing);
+                const machineY = startY + machineRow * (machineHeight + machineVerticalSpacing);
+
+                const machineGpus = [];
+
+                for (let j = 0; j < gpusPerMachine; j++) {
+                    const row = Math.floor(j / gpuCols);
+                    const col = j % gpuCols;
+
+                    // Calculate position of each GPU, centered within the machine box
+                    const gpuX = (machineX - gridWidth / 2) + (col * (gpuSize * 2 + horizontalSpacing)) + gpuSize;
+                    const gpuY = (machineY - gridHeight / 2) + (row * (gpuSize * 2 + verticalSpacing)) + gpuSize;
+                    
+                    machineGpus.push({
+                        x: gpuX,
+                        y: gpuY,
+                        size: gpuSize,
+                        color: '#60a5fa',
+                        globalIndex: i * gpusPerMachine + j
+                    });
+                }
+
+                machines.push({
+                    x: machineX,
+                    y: machineY,
+                    width: machineWidth,
+                    height: machineHeight,
+                    gpus: machineGpus
+                });
+            }
+        };
+
+        // Function to draw the dashboard
+        const drawDashboard = () => {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.shadowBlur = 0;
+
+            // Draw each machine stack
+            machines.forEach((machine, machineIndex) => {
+                // Draw machine box with rounded corners and border
+                const boxX = machine.x - machine.width / 2;
+                const boxY = machine.y - machine.height / 2;
+                const borderRadius = 15;
+                
+                ctx.beginPath();
+                ctx.roundRect(boxX, boxY, machine.width, machine.height, borderRadius);
+                ctx.fillStyle = 'rgba(209, 213, 219, 0.5)';
+                ctx.strokeStyle = '#3b82f6';
+                ctx.lineWidth = 2;
+                ctx.fill();
+                ctx.stroke();
+
+                // Draw each GPU in the stack
+                machine.gpus.forEach((gpu, gpuIndex) => {
+                    // Draw GPUs as squares
+                    ctx.beginPath();
+                    ctx.fillStyle = gpu.color;
+                    ctx.fillRect(gpu.x - gpu.size, gpu.y - gpu.size, gpu.size * 2, gpu.size * 2);
+                    ctx.shadowColor = gpu.color;
+                    ctx.shadowBlur = 20;
+                    ctx.fill();
+    
+                    // Draw progress indicator as a square border based on utilization
+                    const util = gpuUtilization[gpu.globalIndex];
+                    if (util > 0) {
+                        ctx.beginPath();
+                        const utilSize = (gpu.size * 2) * (1 + util / 100 * 0.2); // grows by up to 20%
+                        const utilX = gpu.x - utilSize / 2;
+                        const utilY = gpu.y - utilSize / 2;
+                        ctx.rect(utilX, utilY, utilSize, utilSize);
+                        ctx.strokeStyle = `hsl(${util}, 100%, 50%)`;
+                        ctx.lineWidth = 3;
+                        ctx.stroke();
+                    }
+                });
+            });
+        };
+
+        // Function to update metrics and charts once
+        const updateMetrics = () => {
+            // Simulate data
+            const activeJobCount = Math.floor(Math.random() * 6) + 1;
+            const throughput = (Math.random() * 2 + 1).toFixed(1);
+            const totalVRAM = totalGpus * 8; // Assuming 8GB per GPU
+            
+            // Update utilization for all GPUs
+            gpuUtilization = gpuUtilization.map(() => Math.floor(Math.random() * 100));
+
+            // Update DOM elements with new static data
+            document.querySelector('#totalGpus').textContent = totalGpus;
+            document.querySelector('#activeJobs').textContent = activeJobCount;
+            document.querySelector('#throughput').textContent = `${throughput} Peta`;
+            document.querySelector('#vram').textContent = totalVRAM;
+
+            // Generate a random job list
+            const jobList = [];
+            for (let i = 0; i < activeJobCount; i++) {
+                const jobName = jobNames[Math.floor(Math.random() * jobNames.length)];
+                const jobColor = jobColors[Math.floor(Math.random() * jobColors.length)];
+                const progress = Math.floor(Math.random() * 100);
+                jobList.push({ name: jobName, color: jobColor, progress: progress });
+            }
+
+            // Update job list HTML
+            jobListEl.innerHTML = jobList.map(job => `
+                <div class="p-4 rounded-xl border-2 border-transparent hover:border-indigo-500 transition-colors duration-300">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-lg font-semibold">${job.name}</span>
+                        <span class="text-sm font-bold">${job.progress}%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: ${job.progress}%; background-color: ${job.color};"></div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Generate and update utilization chart
+            utilizationChartEl.innerHTML = gpuUtilization.map((util, index) => {
+                const barColor = `hsl(${util}, 100%, 50%)`;
+                return `
+                    <div class="w-4 rounded-full transition-all duration-500 hover:scale-110" style="height: ${util}%; background-color: ${barColor};" title="GPU ${index + 1}: ${util}%"></div>
+                `;
+            }).join('');
+
+            // Generate and update bandwidth chart
+            bandwidthChartEl.innerHTML = Array.from({ length: 8 }).map(() => {
+                const value = Math.floor(Math.random() * 80) + 20;
+                const barColor = `hsl(${value}, 100%, 50%)`;
+                return `
+                    <div class="w-4 rounded-full transition-all duration-500 hover:scale-110" style="height: ${value}%; background-color: ${barColor};" title="${value} GB/s"></div>
+                `;
+            }).join('');
+            
+            drawDashboard();
+        };
+
+        // Initial setup and event listeners
+        window.addEventListener('resize', resizeCanvas);
+        
+        window.onload = () => {
+            resizeCanvas();
+            updateMetrics();
+            refreshButton.addEventListener('click', updateMetrics);
+        };
+    </script>
+
+</body>
+</html>
