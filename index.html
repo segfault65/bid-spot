@@ -328,11 +328,10 @@
             const inferenceJobsToPlace = jobTypes['AI Inference'].count;
             
             // Distribute red jobs on machines 7, 8, and 9
-            const inferenceMachineIndices = [6, 7, 8]; // Machines 7, 8, and 9
+            const inferenceMachineIndices = [6, 7]; // Machines 7 and 8
             const distribution = {
                 '6': 4, // Machine 7
-                '7': 5, // Machine 8 (Reduced from 7)
-                '8': 1  // Machine 9
+                '7': 6, // Machine 8
             };
             
             // Recalculate distribution based on total jobs (10 jobs)
