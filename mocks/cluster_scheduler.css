@@ -1,8 +1,8 @@
 /* Font and background */
 body {
     font-family: 'Orbitron', sans-serif;
-    background-color: #0b1120;
-    color: #d1d5db;
+    background-color: #f9fafb; /* Changed to a light color */
+    color: #1e293b;            /* Darker text for contrast */
     overflow-x: hidden;
 }
 
@@ -25,7 +25,7 @@ canvas {
 .progress-bar-container {
     width: 100%;
     height: 12px;
-    background-color: #1f2937;
+    background-color: #e5e7eb; /* Lighter background for progress bars */
     border-radius: 9999px;
     overflow: hidden;
 }
@@ -58,4 +58,4 @@ canvas {
     .text-xl { font-size: 1rem !important; }
     .text-lg { font-size: 0.95rem !important; }
     .text-5xl { font-size: 2rem !important; }
-}
+}   

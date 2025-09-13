@@ -42,6 +42,8 @@ const jobTypes = {
     'Large Training': { count: 3, gpusPerJob: 8, color: '#a78bfa' }
 };
 
+const freeColor = '#60a5fa';
+
 // Resize function for canvas
 const resizeCanvas = () => {
     canvas.width = canvas.parentElement.offsetWidth;
@@ -63,12 +65,15 @@ const updateGpuPositions = () => {
     const gridHeight = (gpuRows * (gpuSize * 2)) + ((gpuRows - 1) * verticalSpacing);
     const machineWidth = gridWidth + 60; // Add padding
     const machineHeight = gridHeight + 60; // Add padding
+
+    // Add more space between machine boxes
     const machineGridRows = 3;
     const machineGridCols = 3;
-    
-    const totalClusterWidth = (machineWidth * machineGridCols) + (2 * (machineGridCols -1));
-    const totalClusterHeight = (machineHeight * machineGridRows) + (2 * (machineGridRows -1));
-    
+    const machineBoxGap = 32; // Increased gap between machine boxes
+
+    const totalClusterWidth = (machineWidth * machineGridCols) + (machineBoxGap * (machineGridCols - 1));
+    const totalClusterHeight = (machineHeight * machineGridRows) + (machineBoxGap * (machineGridRows - 1));
+
     const startX = centerX - totalClusterWidth / 2;
     const startY = centerY - totalClusterHeight / 2;
 
@@ -77,8 +82,8 @@ const updateGpuPositions = () => {
         const machineRow = Math.floor(i / machineGridCols);
         const machineCol = i % machineGridCols;
 
-        const machineX = startX + machineCol * (machineWidth + 2);
-        const machineY = startY + machineRow * (machineHeight + 2);
+        const machineX = startX + machineCol * (machineWidth + machineBoxGap);
+        const machineY = startY + machineRow * (machineHeight + machineBoxGap);
 
         const machineGpus = [];
 
@@ -89,12 +94,12 @@ const updateGpuPositions = () => {
             // Calculate position of each GPU, centered within the machine box
             const gpuX = (machineX + 30) + (col * (gpuSize * 2 + horizontalSpacing)) + gpuSize;
             const gpuY = (machineY + 30) + (row * (gpuSize * 2 + verticalSpacing)) + gpuSize;
-            
+
             machineGpus.push({
                 x: gpuX,
                 y: gpuY,
                 size: gpuSize,
-                color: '#60a5fa',
+                color: freeColor,
                 globalIndex: i * gpusPerMachine + j
             });
         }
