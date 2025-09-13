@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BidSpot GPU Market Clearing Algorithm Simulator</title>
+    <title>GPU Market Clearing Algorithm Simulator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -23,6 +23,7 @@
             font-weight: 600;
             color: white;
             transition: background-color 0.2s;
+            cursor: pointer;
         }
         .btn-primary {
             background-color: #4f46e5;
@@ -42,8 +43,8 @@
 
     <div class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-8">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">BidSpot GPU Market Clearing Simulator</h1>
-            <p class="text-lg text-gray-600 mt-2">Simulating dynamic pricing and resource allocation across distributed clusters.</p>
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">GPU Market Clearing Algorithm</h1>
+            <p class="text-lg text-gray-600 mt-2">Simulating allocation of shaped workloads onto physical machine infrastructure.</p>
         </header>
 
         <!-- Main Controls -->
@@ -69,18 +70,28 @@
                     <!-- Pinned Demand Input -->
                     <div class="space-y-3 mb-6">
                         <label for="pinned-cluster" class="font-medium">Pinned Demand</label>
-                        <select id="pinned-cluster" class="w-full p-2 border rounded-md bg-gray-50">
-                            <option value="us-east-1">us-east-1</option>
-                            <option value="eu-west-2">eu-west-2</option>
-                            <option value="ap-northeast-1">ap-northeast-1</option>
+                        <select id="pinned-workload-shape" class="w-full p-2 border rounded-md bg-gray-50">
+                            <option value="inference">AI Inference (1 GPU)</option>
+                            <option value="training_batch">Training Batch (4 GPUs)</option>
+                            <option value="large_training">Large Training (8 GPUs)</option>
                         </select>
-                        <input type="number" id="pinned-quantity" placeholder="Quantity" class="w-full p-2 border rounded-md" min="1" value="10">
+                        <select id="pinned-cluster" class="w-full p-2 border rounded-md bg-gray-50">
+                            <option value="us-east-1">to us-east-1</option>
+                            <option value="eu-west-2">to eu-west-2</option>
+                            <option value="ap-northeast-1">to ap-northeast-1</option>
+                        </select>
+                        <input type="number" id="pinned-quantity" placeholder="Number of Jobs" class="w-full p-2 border rounded-md" min="1" value="5">
                         <button id="add-pinned-btn" class="btn btn-secondary w-full">Add Pinned Request</button>
                     </div>
                     <!-- Floating Demand Input -->
                     <div class="space-y-3">
                          <label for="floating-quantity" class="font-medium">Floating Demand</label>
-                         <input type="number" id="floating-quantity" placeholder="Quantity" class="w-full p-2 border rounded-md" min="1" value="50">
+                         <select id="floating-workload-shape" class="w-full p-2 border rounded-md bg-gray-50">
+                            <option value="inference">AI Inference (1 GPU)</option>
+                            <option value="training_batch">Training Batch (4 GPUs)</option>
+                            <option value="large_training">Large Training (8 GPUs)</option>
+                        </select>
+                         <input type="number" id="floating-quantity" placeholder="Number of Jobs" class="w-full p-2 border rounded-md" min="1" value="10">
                          <button id="add-floating-btn" class="btn btn-secondary w-full">Add Floating Request</button>
                     </div>
                 </div>
@@ -95,7 +106,7 @@
             <!-- Column 2: System State & Outputs -->
             <div class="lg:col-span-2 space-y-6">
                 <div class="card">
-                     <h3 class="text-xl font-semibold mb-4">Cluster State & Spot Allocation</h3>
+                     <h3 class="text-xl font-semibold mb-4">Cluster State & Available Slots</h3>
                      <div id="cluster-state-display" class="grid md:grid-cols-3 gap-4">
                         <!-- Cluster cards will be injected here -->
                      </div>
@@ -103,7 +114,7 @@
 
                 <div class="grid md:grid-cols-2 gap-6">
                     <div class="card">
-                        <h3 class="text-xl font-semibold mb-4">Price List</h3>
+                        <h3 class="text-xl font-semibold mb-4">Price List (per GPU)</h3>
                         <div id="price-list-display" class="space-y-2">
                            <p class="text-gray-500">Run algorithm to generate prices.</p>
                         </div>
@@ -119,7 +130,7 @@
 
         </div>
     </div>
-
-    <script src="market_simulator.js"></script>
+<script src="market_simulator.js"> </script>
 </body>
 </html>
+
