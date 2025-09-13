@@ -3,57 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GPU Cluster Dashboard</title>
+    <title>BidSpot Cluster Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Orbitron', sans-serif;
-            background-color: #0b1120;
-            color: #d1d5db;
-            overflow: hidden;
-        }
-        canvas {
-            background-color: transparent;
-        }
-        .glow-text {
-            text-shadow: 0 0 5px #60a5fa, 0 0 10px #60a5fa, 0 0 15px rgba(96, 165, 250, 0.5);
-        }
-        .data-glow {
-            box-shadow: 0 0 5px #a78bfa, 0 0 10px #a78bfa;
-        }
-        .progress-bar-container {
-            width: 100%;
-            height: 12px;
-            background-color: #1f2937;
-            border-radius: 9999px;
-            overflow: hidden;
-        }
-        .progress-bar {
-            height: 100%;
-            transition: width 0.5s ease-in-out, background-color 0.5s ease-in-out;
-            border-radius: 9999px;
-        }
-        .sparkle {
-            animation: sparkle-animation 2s infinite linear;
-        }
-        @keyframes sparkle-animation {
-            0% { opacity: 0; transform: scale(0.5); }
-            50% { opacity: 1; transform: scale(1); }
-            100% { opacity: 0; transform: scale(0.5); }
-        }
-    </style>
+    <link rel="stylesheet" href="cluster_scheduler.css">
 </head>
 <body>
-
-    <div class="flex flex-col md:flex-row h-screen">
+    <div class="flex flex-col md:flex-row h-auto min-h-screen">
         <!-- Main GPU Visualization Section -->
-        <div class="flex-1 w-full flex flex-col items-center justify-center p-4">
+        <div class="flex-1 w-full flex flex-col items-center justify-center p-2 sm:p-4">
             <!-- Controller Box -->
-            <div class="bg-gray-800 rounded-lg shadow-xl p-4 mb-6 text-center">
-                <h2 class="text-3xl font-bold text-gray-200 glow-text">Cluster Scheduler</h2>
+            <div class="bg-gray-800 rounded-lg shadow-xl p-4 mb-4 sm:mb-6 text-center w-full max-w-2xl">
+                <h2 class="text-3xl font-bold text-gray-200 glow-text">BidSpot Cluster Scheduler</h2>
                 <div class="mt-4">
                     <h3 class="text-xl font-semibold text-gray-400 mb-2">Incoming Job Queue</h3>
                     <div id="incomingJobsQueue" class="flex justify-center items-center flex-wrap gap-2">
@@ -61,19 +24,19 @@
                     </div>
                 </div>
                 <div class="mt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <div class="flex flex-col items-center">
+                    <div class="flex flex-col items-center w-full sm:w-auto">
                         <label for="jobTypeDropdown" class="text-sm text-gray-400 mb-1">Select Job Type</label>
-                        <select id="jobTypeDropdown" class="bg-gray-700 text-white rounded-md p-2 w-48 text-center focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select id="jobTypeDropdown" class="bg-gray-700 text-white rounded-md p-2 w-full sm:w-48 text-center focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="AI Inference">AI Inference (1 GPU)</option>
                             <option value="Training Batch">Training Batch (4 GPUs)</option>
                             <option value="Large Training">Large Training (8 GPUs)</option>
                         </select>
                     </div>
-                    <div class="flex flex-col items-center">
+                    <div class="flex flex-col items-center w-full sm:w-auto">
                         <label for="jobCountInput" class="text-sm text-gray-400 mb-1">Set Job Count</label>
-                        <input type="number" id="jobCountInput" value="10" min="0" max="15" class="bg-gray-700 text-white rounded-md p-2 w-24 text-center focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="number" id="jobCountInput" value="10" min="0" max="15" class="bg-gray-700 text-white rounded-md p-2 w-full sm:w-24 text-center focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
-                    <button id="setJobsButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors">Set Jobs</button>
+                    <button id="setJobsButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors w-full sm:w-auto">Set Jobs</button>
                 </div>
             </div>
             <!-- End Controller Box -->
@@ -82,30 +45,27 @@
             <!-- End Message Text Box -->
             <div class="w-full max-w-4xl flex flex-col sm:flex-row justify-center items-center gap-4">
                 <!-- Job Summary Box -->
-                <div class="bg-gray-800 rounded-lg shadow-xl p-4 mt-6 text-center w-full sm:w-1/2">
+                <div class="bg-gray-800 rounded-lg shadow-xl p-4 mt-4 sm:mt-6 text-center w-full sm:w-1/2">
                     <h3 class="text-2xl font-bold text-gray-200 mb-2 glow-text">Current Job Summary</h3>
                     <div id="jobSummaryBox" class="flex justify-center items-center flex-wrap gap-4">
                         <!-- Summary will be rendered here -->
                     </div>
                 </div>
                 <!-- End Job Summary Box -->
-    
                 <!-- Free GPUs Box -->
-                <div class="bg-gray-800 rounded-lg shadow-xl p-4 mt-6 text-center w-full sm:w-1/2">
+                <div class="bg-gray-800 rounded-lg shadow-xl p-4 mt-4 sm:mt-6 text-center w-full sm:w-1/2">
                     <h3 class="text-2xl font-bold text-gray-200 mb-2 glow-text">Free GPUs</h3>
                     <div id="freeGpusSummary" class="text-5xl font-bold text-green-400">0</div>
                 </div>
                 <!-- End Free GPUs Box -->
             </div>
-
-            <div class="w-full max-w-4xl h-full flex flex-col items-center justify-center relative">
-                <canvas id="gpuCanvas" class="rounded-3xl border-2 border-[#1f2937]"></canvas>
+            <div class="w-full max-w-4xl h-full flex flex-col items-center justify-center relative mt-4">
+                <canvas id="gpuCanvas" class="rounded-3xl border-2 border-[#1f2937] w-full" style="max-width:100%;"></canvas>
             </div>
         </div>
-
         <!-- Metrics and Info Section -->
-        <div class="md:w-0 overflow-hidden">
-            <!-- Content for this section is now hidden -->
+        <div class="w-full md:w-0 overflow-hidden md:block hidden">
+            <!-- Content for this section is now hidden on mobile -->
             <div class="bg-[#1f2937] rounded-3xl p-6 border border-[#374151] backdrop-blur-sm bg-opacity-70">
                 <h2 class="text-xl font-bold mb-4 text-center">System Metrics</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -127,7 +87,6 @@
                     </div>
                 </div>
             </div>
-
             <!-- Job Queue Card -->
             <div class="bg-[#1f2937] rounded-3xl p-6 border border-[#374151] backdrop-blur-sm bg-opacity-70">
                 <h2 class="text-xl font-bold mb-4 text-center">Current Jobs</h2>
@@ -135,7 +94,6 @@
                     <!-- Dynamic jobs will be added here -->
                 </div>
             </div>
-
             <!-- Performance Graphs Card (simulated with CSS/JS) -->
             <div class="bg-[#1f2937] rounded-3xl p-6 border border-[#374151] backdrop-blur-sm bg-opacity-70">
                 <h2 class="text-xl font-bold mb-4 text-center">Performance Overview</h2>
@@ -152,7 +110,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
     <script src="cluster_scheduler_script.js"></script>
