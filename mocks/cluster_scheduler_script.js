@@ -59,53 +59,105 @@ const resizeCanvas = () => {
     drawDashboard();
 };
 
-// Function to position GPUs dynamically
-const updateGpuPositions = () => {
-    const numMachines = CLUSTER_CONFIG.numMachines;
-    const gpusPerMachine = CLUSTER_CONFIG.gpusPerMachine;
-    const gpuRows = 2;
-    const gpuCols = 4;
-    
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
+/**
+ * Always use 2 rows for GPUs in each machine box.
+ * The number of columns is calculated based on the total number of GPUs per machine.
+ * If GPUs can't fit, shrink their size to fit all within the box (no scrollbar).
+ */
+function getGpuGrid(numGpus) {
+    const rows = 2;
+    const cols = Math.ceil(numGpus / rows);
+    return { rows, cols };
+}
 
-    const gpuSize = 15;
-    const horizontalSpacing = 20;
-    const verticalSpacing = 20;
-    const gridWidth = (gpuCols * (gpuSize * 2)) + ((gpuCols - 1) * horizontalSpacing);
-    const gridHeight = (gpuRows * (gpuSize * 2)) + ((gpuRows - 1) * verticalSpacing);
-    const machineWidth = gridWidth + 60;
-    const machineHeight = gridHeight + 60;
+function updateGpuPositions() {
+    // Get canvas size
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
 
-    const machineGridCols = Math.ceil(Math.sqrt(numMachines));
-    const machineGridRows = Math.ceil(numMachines / machineGridCols);
-    const machineBoxGap = 32;
+    // Get number of machines and GPUs per machine from config or state
+    const numMachines = CLUSTER_CONFIG.numMachines || 9;
+    const gpusPerMachine = CLUSTER_CONFIG.gpusPerMachine || 8;
 
-    const totalClusterWidth = (machineWidth * machineGridCols) + (machineBoxGap * (machineGridCols - 1));
-    const totalClusterHeight = (machineHeight * machineGridRows) + (machineBoxGap * (machineGridRows - 1));
+    // Calculate grid for machines: try to have the same number of machines in each row
+    // Find the closest factor pair (cols, rows) such that cols*rows >= numMachines and |cols-rows| is minimized
+    let bestCols = 1, bestRows = numMachines;
+    let minDiff = numMachines;
+    for (let cols = 1; cols <= Math.ceil(Math.sqrt(numMachines)); cols++) {
+        let rows = Math.ceil(numMachines / cols);
+        if (cols * rows >= numMachines && Math.abs(cols - rows) < minDiff) {
+            bestCols = cols;
+            bestRows = rows;
+            minDiff = Math.abs(cols - rows);
+        }
+    }
+    const machineGridCols = bestCols;
+    const machineGridRows = bestRows;
 
-    const startX = centerX - totalClusterWidth / 2;
-    const startY = centerY - totalClusterHeight / 2;
+    // Calculate max available width/height for each machine box
+    const margin = 32;
+    const machineBoxGap = 24;
+    const availableWidth = canvasWidth - margin * 2 - (machineGridCols - 1) * machineBoxGap;
+    const availableHeight = canvasHeight - margin * 2 - (machineGridRows - 1) * machineBoxGap;
+    // Make machine box square: use the smaller of width/height per box
+    const maxBoxWidth = Math.floor(availableWidth / machineGridCols);
+    const maxBoxHeight = Math.floor(availableHeight / machineGridRows);
+    const machineBoxSize = Math.min(maxBoxWidth, maxBoxHeight);
+
+    // Calculate grid for GPUs in each machine (always 2 rows)
+    const { rows: gpuRows, cols: gpuCols } = getGpuGrid(gpusPerMachine);
+
+    // Calculate GPU size and spacing to fit in the machine box
+    const gpuPadding = 20;
+    // Dynamically resize GPU size to fit, but clamp between 8 and 32
+    const maxGpuWidth = Math.floor((machineBoxSize - gpuPadding * 2) / gpuCols);
+    const maxGpuHeight = Math.floor((machineBoxSize - gpuPadding * 2) / gpuRows);
+    const gpuSize = Math.max(8, Math.min(maxGpuWidth, maxGpuHeight, 32));
+    const horizontalSpacing = gpuCols > 1 ? Math.floor((machineBoxSize - gpuPadding * 2 - gpuSize * gpuCols) / (gpuCols - 1)) : 0;
+    const verticalSpacing = gpuRows > 1 ? Math.floor((machineBoxSize - gpuPadding * 2 - gpuSize * gpuRows) / (gpuRows - 1)) : 0;
+
+    // Center the grid of machines
+    const totalClusterWidth = machineGridCols * machineBoxSize + (machineGridCols - 1) * machineBoxGap;
+    const totalClusterHeight = machineGridRows * machineBoxSize + (machineGridRows - 1) * machineBoxGap;
+    const startX = (canvasWidth - totalClusterWidth) / 2;
+    const startY = (canvasHeight - totalClusterHeight) / 2;
 
     machines = [];
     for (let i = 0; i < numMachines; i++) {
         const machineRow = Math.floor(i / machineGridCols);
         const machineCol = i % machineGridCols;
 
-        const machineX = startX + machineCol * (machineWidth + machineBoxGap);
-        const machineY = startY + machineRow * (machineHeight + machineBoxGap);
+        const machineX = startX + machineCol * (machineBoxSize + machineBoxGap);
+        const machineY = startY + machineRow * (machineBoxSize + machineBoxGap);
 
         const machineGpus = [];
+
         for (let j = 0; j < gpusPerMachine; j++) {
             const row = Math.floor(j / gpuCols);
             const col = j % gpuCols;
-            const gpuX = (machineX + 30) + (col * (gpuSize * 2 + horizontalSpacing)) + gpuSize;
-            const gpuY = (machineY + 30) + (row * (gpuSize * 2 + verticalSpacing)) + gpuSize;
-            machineGpus.push({ x: gpuX, y: gpuY, size: gpuSize, color: freeColor });
+
+            // Calculate position of each GPU, centered within the machine box
+            const gpuX = machineX + gpuPadding + col * (gpuSize + horizontalSpacing) + gpuSize / 2;
+            const gpuY = machineY + gpuPadding + row * (gpuSize + verticalSpacing) + gpuSize / 2;
+
+            machineGpus.push({
+                x: gpuX,
+                y: gpuY,
+                size: gpuSize / 2,
+                color: '#60a5fa',
+                globalIndex: i * gpusPerMachine + j
+            });
         }
-        machines.push({ x: machineX, y: machineY, width: machineWidth, height: machineHeight, gpus: machineGpus });
+
+        machines.push({
+            x: machineX,
+            y: machineY,
+            width: machineBoxSize,
+            height: machineBoxSize,
+            gpus: machineGpus
+        });
     }
-};
+}
 
 // Function to draw the dashboard
 const drawDashboard = () => {
@@ -113,21 +165,24 @@ const drawDashboard = () => {
     machines.forEach((machine, machineIndex) => {
         const boxX = machine.x;
         const boxY = machine.y;
+        const boxSize = machine.width; // square
         const borderRadius = 15;
-        
+
         ctx.beginPath();
-        ctx.roundRect(boxX, boxY, machine.width, machine.height, borderRadius);
+        ctx.roundRect(boxX, boxY, boxSize, boxSize, borderRadius);
         ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
         ctx.strokeStyle = '#3b82f6';
         ctx.lineWidth = 2;
         ctx.fill();
         ctx.stroke();
 
+        // Font size scales with box size, min 8px, max 18px
+        const fontSize = Math.max(8, Math.min(18, Math.floor(boxSize / 10)));
         ctx.fillStyle = '#d1d5db';
-        ctx.font = '14px Orbitron';
+        ctx.font = `${fontSize}px Orbitron`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(`Machine ${machineIndex + 1}`, boxX + machine.width / 2, boxY + 20);
+        ctx.fillText(`Machine ${machineIndex + 1}`, boxX + boxSize / 2, boxY + fontSize + 2);
 
         machine.gpus.forEach((gpu) => {
             ctx.beginPath();
