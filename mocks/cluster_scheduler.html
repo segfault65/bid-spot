@@ -39,27 +39,29 @@
         <div class="flex-1 w-full flex flex-col items-center justify-center p-2 sm:p-4">
             <!-- Controller Box -->
             <div class="card mb-4 sm:mb-6 text-center w-full max-w-2xl">
-                <h2 class="text-3xl font-bold text-gray-800 glow-text mb-2">BidSpot Cluster Scheduler</h2>
-                <div class="mt-4">
-                    <h3 class="text-xl font-semibold text-gray-500 mb-2">Incoming Job Queue</h3>
-                    <div id="incomingJobsQueue" class="flex justify-center items-center flex-wrap gap-2">
-                        <!-- Jobs will be rendered here -->
+                <h2 class="text-3xl font-bold text-gray-800 glow-text mb-2">BidSpot Cluster Scheduler: <span id="cluster-id-display" class="text-blue-500"></span></h2>
+                <div id="manual-controls">
+                    <div class="mt-4">
+                        <h3 class="text-xl font-semibold text-gray-500 mb-2">Incoming Job Queue</h3>
+                        <div id="incomingJobsQueue" class="flex justify-center items-center flex-wrap gap-2">
+                            <!-- Jobs will be rendered here -->
+                        </div>
                     </div>
-                </div>
-                <div class="mt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <div class="flex flex-col items-center w-full sm:w-auto">
-                        <label for="jobTypeDropdown" class="text-sm text-gray-500 mb-1">Select Job Type</label>
-                        <select id="jobTypeDropdown" class="bg-gray-100 text-gray-800 rounded-md p-2 w-full sm:w-48 text-center focus:outline-none focus:ring-2 focus:ring-blue-500 border">
-                            <option value="AI Inference">AI Inference (1 GPU)</option>
-                            <option value="Training Batch">Training Batch (4 GPUs)</option>
-                            <option value="Large Training">Large Training (8 GPUs)</option>
-                        </select>
+                    <div class="mt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+                        <div class="flex flex-col items-center w-full sm:w-auto">
+                            <label for="jobTypeDropdown" class="text-sm text-gray-500 mb-1">Select Job Type</label>
+                            <select id="jobTypeDropdown" class="bg-gray-100 text-gray-800 rounded-md p-2 w-full sm:w-48 text-center focus:outline-none focus:ring-2 focus:ring-blue-500 border">
+                                <option value="AI Inference">AI Inference (1 GPU)</option>
+                                <option value="Training Batch">Training Batch (4 GPUs)</option>
+                                <option value="Large Training">Large Training (8 GPUs)</option>
+                            </select>
+                        </div>
+                        <div class="flex flex-col items-center w-full sm:w-auto">
+                            <label for="jobCountInput" class="text-sm text-gray-500 mb-1">Set Job Count</label>
+                            <input type="number" id="jobCountInput" value="10" min="0" max="15" class="bg-gray-100 text-gray-800 rounded-md p-2 w-full sm:w-24 text-center focus:outline-none focus:ring-2 focus:ring-blue-500 border">
+                        </div>
+                        <button id="setJobsButton" class="btn btn-primary w-full sm:w-auto">Set Jobs</button>
                     </div>
-                    <div class="flex flex-col items-center w-full sm:w-auto">
-                        <label for="jobCountInput" class="text-sm text-gray-500 mb-1">Set Job Count</label>
-                        <input type="number" id="jobCountInput" value="10" min="0" max="15" class="bg-gray-100 text-gray-800 rounded-md p-2 w-full sm:w-24 text-center focus:outline-none focus:ring-2 focus:ring-blue-500 border">
-                    </div>
-                    <button id="setJobsButton" class="btn btn-primary w-full sm:w-auto">Set Jobs</button>
                 </div>
             </div>
             <!-- End Controller Box -->
@@ -76,15 +78,15 @@
                     <span class="text-sm text-gray-700">Free</span>
                 </span>
                 <span class="flex items-center gap-2">
-                    <span class="legend-dot" style="background:#a78bfa"></span>
+                    <span class="legend-dot" style="background:#f87171"></span>
                     <span class="text-sm text-gray-700">AI Inference</span>
                 </span>
                 <span class="flex items-center gap-2">
-                    <span class="legend-dot" style="background:#fcd34d"></span>
+                    <span class="legend-dot" style="background:#34d399"></span>
                     <span class="text-sm text-gray-700">Training Batch</span>
                 </span>
                 <span class="flex items-center gap-2">
-                    <span class="legend-dot" style="background:#60a5fa"></span>
+                    <span class="legend-dot" style="background:#a78bfa"></span>
                     <span class="text-sm text-gray-700">Large Training</span>
                 </span>
             </div>
@@ -162,3 +164,4 @@
     <script src="cluster_scheduler_script.js"></script>
 </body>
 </html>
+
